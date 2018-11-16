@@ -23,11 +23,14 @@ typedef struct
 	void **stack_pointer;
 } coroutine_context;
 
-typedef COROUTINE(* coroutine_start)(coroutine_context *from, coroutine_context *self);
+typedef COROUTINE(* coroutine_start)(coroutine_context *from, coroutine_context *self, void * argument);
+
+void coroutine_trampoline();
 
 static inline void coroutine_initialize(
 	coroutine_context *context,
 	coroutine_start start,
+	void *argument,
 	void *stack_pointer,
 	size_t stack_size
 ) {
@@ -42,7 +45,12 @@ static inline void coroutine_initialize(
 
 	*--context->stack_pointer = NULL;
 	*--context->stack_pointer = (void*)start;
-
+	
+	if (argument) {
+		*--context->stack_pointer = argument;
+		*--context->stack_pointer = (void*)coroutine_trampoline;
+	}
+	
 	context->stack_pointer -= COROUTINE_REGISTERS;
 	memset(context->stack_pointer, 0, sizeof(void*) * COROUTINE_REGISTERS);
 }
