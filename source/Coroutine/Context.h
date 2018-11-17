@@ -21,46 +21,33 @@ const size_t COROUTINE_REGISTERS = 6;
 typedef struct
 {
 	void **stack_pointer;
-} coroutine_context;
+} CoroutineContext;
 
-typedef COROUTINE(* coroutine_start)(coroutine_context *from, coroutine_context *self, void * argument);
+typedef COROUTINE(* CoroutineStart)(CoroutineContext *from, CoroutineContext *self, void * argument);
 
 void coroutine_trampoline();
 
 static inline void coroutine_initialize(
-	coroutine_context *context,
-	coroutine_start start,
+	CoroutineContext *context,
+	CoroutineStart start,
 	void *argument,
 	void *stack_pointer,
 	size_t stack_size
 ) {
-	/* Force 16-byte alignment */
+	/* 	The i386 System V ABI has guaranteed/required for years that ESP+4 is 16B-aligned on entry to a function. (i.e. ESP must be 16B-aligned before a CALL instruction, so args on the stack start at a 16B boundary. This is the same as for x86-64 System V.) */
 	context->stack_pointer = (void**)((uintptr_t)stack_pointer & ~0xF);
-
-	if (!start) {
-		assert(!context->stack_pointer);
-		/* We are main coroutine for this thread */
-		return;
-	}
-
+	
 	*--context->stack_pointer = NULL;
 	*--context->stack_pointer = (void*)start;
 	
-	if (argument) {
-		*--context->stack_pointer = argument;
-		*--context->stack_pointer = (void*)coroutine_trampoline;
-	}
+	*--context->stack_pointer = argument;
+	*--context->stack_pointer = (void*)coroutine_trampoline;
 	
 	context->stack_pointer -= COROUTINE_REGISTERS;
 	memset(context->stack_pointer, 0, sizeof(void*) * COROUTINE_REGISTERS);
 }
 
-coroutine_context * coroutine_transfer(coroutine_context * current, coroutine_context * target);
-
-static inline void coroutine_destroy(coroutine_context * context)
-{
-	context->stack_pointer = NULL;
-}
+CoroutineContext * coroutine_transfer(CoroutineContext * current, CoroutineContext * target);
 
 #if __cplusplus
 }
