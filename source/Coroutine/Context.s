@@ -40,14 +40,3 @@ coroutine_transfer:
 
 	# We pop the return address and jump to it
 	ret
-
-# For older linkers
-.globl _coroutine_trampoline
-_coroutine_trampoline:
-
-.globl coroutine_trampoline
-coroutine_trampoline:
-	# Put the argument into the 3rd position.
-	popq %rdx
-	
-	ret
