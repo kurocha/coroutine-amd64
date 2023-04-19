@@ -9,6 +9,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <stdint.h>
 
 #if __cplusplus
 extern "C" {
